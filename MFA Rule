@@ -1,0 +1,39 @@
+function multifactorAuthentication(user, context, cb) {
+    /*
+    This rule is designed to demonstrate triggering MFA based on Organizational Metadata during authentication.
+    MFA will be triggered if either of the below conditions are true.
+
+    1. org_metadata.require_mfa = true
+
+   */
+
+  // For Logging Events
+  const log = global.getLogger
+    ? global.getLogger('Contextual MFA', cb)
+    : {
+        callback: cb,
+        error: console.error,
+        info: console.log,
+        debug: console.log
+      };
+  const { callback } = log;
+
+  user.user_metadata = user.user_metadata || {};
+  user.app_metadata = user.app_metadata || {};
+  const is_organization = context.organization || false;
+  if (is_organization !== false){
+    log.info(`Application is Organization. Running Org Checks for MFA`,true);
+  	const org_metadata = context.organization.metadata || {};
+  	const require_mfa = org_metadata.require_mfa || 'false';
+  	log.info(`Require MFA Metadata Setting: ` + require_mfa, true);
+  	if (require_mfa === 'true') {
+    	log.info(`Forcing MFA for Specific Org: ` + context.organization.name ,true);
+    	context.multifactor = {
+      	provider: 'any',
+      	allowRememberBrowser: false
+    	};
+  	}
+  }
+
+  callback(null, user, context);
+}
